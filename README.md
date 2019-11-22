@@ -32,7 +32,9 @@ In this section you can find some examples based on fully parsed and normalized 
   * [Find IPv4 summary routes that are not in a specific allowed list](#example-1.2)
   * [Find loopback interfaces assigned subnets bigger than /32](#example-1.3)
   * [Find connected interfaces that have mismatched MTU settings](#example-1.4)
-  * [Find duplicate IP addresses within a VRF](#example-5)
+  * [Find duplicate IP addresses within a VRF](#example-1.5)
+  * [Find all devices no running latest certified software](#example-1.6)
+  * [Find interface with no description, except loopbacks](#example-1.7)
 
 <a id="example-1.1"></a>
 ## Find every interface whose admin status is UP but operational status is not UP
@@ -162,6 +164,48 @@ Note that the expression ***loc.device + ":" + loc.iface*** in the select expres
 
 Query result example:
 ![In-App NQE Checks Interface Unique IP](/images/in-app-nqe-checks-example-unique-ip.png?width=800px&classes=shadow)
+
+<a id="example-1.6"></a>
+## Find all devices no running latest certified software
+
+The following checks looks for network devices no running the latest certified software from different network vendors.
+
+```
+foreach device in network.devices
+let platform = device.platform
+where isPresent(platform.osVersion) &&
+      (platform.vendor == Vendor.CISCO && platform.osVersion != "9.2(4)" ||
+       platform.vendor == Vendor.JUNIPER && platform.osVersion != "14.1R5.4" ||
+       platform.vendor == Vendor.ARISTA && platform.osVersion != "4.15.0F" ||
+       platform.vendor == Vendor.VMWARE && platform.osVersion != "6.5.0")
+select { vendor: platform.vendor,
+         os: platform.os,
+         deviceName: device.name,
+         osVersion: platform.osVersion
+       }
+```
+
+Query result example:
+![In-App NQE Checks Certified Software](/images/in-app-nqe-checks-example-certified-software.png?width=800px&classes=shadow)
+
+
+<a id="example-1.7"></a>
+## Find interface with no description, except loopbacks
+
+The following checks looks for interfaces with no description except loopbacks.
+
+```
+foreach device in network.devices
+foreach interface in device.interfaces
+where !isPresent(interface.description) && interface.loopbackMode == false
+select { deviceName: device.name,
+         interfaceName: interface.name,
+         description: interface.description,
+         loopback: interface.loopbackMode
+       }
+```
+Query result example:
+![In-App NQE Checks Certified Software](/images/in-app-nqe-checks-example-interface-description.png?width=800px&classes=shadow)
 
 <a id="chapter-3"></a>
 # In-App device config Checks examples
