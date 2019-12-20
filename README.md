@@ -1,31 +1,30 @@
-Table of Content:
+# In-App Network Query Engine (NQE) Checks
 
-  * [NQE and In-App NQE Checks](#chapter-1)  
-  * [In-App NQE Checks Examples](#chapter-2)  
-  * [In-App Device Config Checks Examples](#chapter-3)  
-  * [How to contribute](#chapter-4)  
+Network Query Engine (NQE) by Forward Networks provides information about the network as JSON data in a fully-parsed form.
+The information is normalized and presented uniformly across devices from different vendors.
+The exported data structures are standards-aligned with [OpenConfig](http://www.openconfig.net/) (details below), and all data is available through a [GraphQL](https://github.com/forwardnetworks/network-query-engine#graphql-interface) API as well as custom verification checks directly in the Forward Enterprise browser-based interface ([In-App NQE Checks](#in-app-nqe-checks)).
 
-<a id="chapter-1"></a>
-# NQE and In-App NQE Checks
-## Network Query Engine (NQE)
-***NQE*** is a Forward Networks' enterprise platform (Forward Enterprise) feature that provides to IT teams the ability to query their network details (configurations, links, security rules, routing policies, device status, etc.) like a database.
+This repository helps you get started with the In-App NQE Checks.
 
-NQE provides a simple API that exposes information about the network as JSON data in a fully-parsed form. The information is normalized and presented uniformly across devices from different vendors. The exported data structures are standards-aligned with [OpenConfig](http://www.openconfig.net/), and all data is available through a [GraphQL](https://graphql.org/) API. This API allows network operators to easily develop scripts - for example, to perform sanity checks or to display information - that work across the entire fleet of devices in their network.
+Please check out this [blog post](https://www.forwardnetworks.com/blog/network-query-engine) for more information on NQE and this [GitHub repo](https://github.com/forwardnetworks/network-query-engine-examples) for some examples based on the GraphQL API.  
 
-Please check out this [blog post](https://www.forwardnetworks.com/blog/network-query-engine) for more information on NQE and this [GitHub repo](https://github.com/forwardnetworks/network-query-engine-examples) for some examples.  
+<a id="in-app-nqe-checks"></a>
+## Getting Started
 
-## In-App Network Query Engine (NQE) checks
+As stated above, ***In-App NQE Checks*** augments NQE by enabling IT teams to create custom verification checks using the NQE data model, directly in the Forward Enterprise browser-based interface.
 
-***In-App NQE Checks*** augments NQE by enabling IT teams to create custom verification checks using the NQE data model, directly in the Forward Enterprise browser-based interface.
+Following you can find a screenshot from the Forward Enterprise GUI with a simple query to find every interface whose admin status is UP but operational status is not UP.
 
 ![In-App NQE Checks example](/images/in-app-nqe-checks-example.png?width=800px&classes=shadow)
 
-In-App NQE Checks can be saved in the Forward Enterprise platforms and verified every time a new network collection is taken.
+Moreover, In-App NQE Checks, allows to build custom verification checks even for device configuration and state data that is not fully parsed and normalized by providing an easy way to match patterns in the configuration files.
+This new capability is very important for use cases like vendor specific information or for data that is not published on NQE [yet].
+Check the [In-App Device Config Checks Examples](#device-config-checks-examples) section for some examples.
 
-Moreover, In-App NQE Checks, allows to build custom verification checks even for device configuration and state data that is not fully parsed and normalized by providing an easy way to match patterns in the configuration and state files. Check the [In-App Device Config Checks Examples](#example-6) section for more information and some examples.
+In-App NQE Checks can be saved in the Forward Enterprise platforms and verified every time a new network collection is taken, as with any other Verification Check.
 
-<a id="chapter-2"></a>
-# In-App NQE Checks Examples
+<a id="in-app-nqe-checks-examples"></a>
+## In-App NQE Checks Examples
 In this section you can find some examples based on fully parsed and normalized NQE data.
 
   * [Find every interface whose admin status is UP but operational status is not UP](/examples/interface-status.md)
@@ -36,17 +35,18 @@ In this section you can find some examples based on fully parsed and normalized 
   * [Find all devices no running latest certified software](/examples/certified-software.md)
   * [Find interface with no description, except loopbacks](/examples/interface-description.md)
 
-<a id="chapter-3"></a>
-# In-App device config Checks examples
+<a id="device-config-checks-examples"></a>
+## In-App Device Config Checks Examples
 
-In this section you can find some examples based on no fully parsed and normalized data from device configuration and state files.
+In this section you can find some examples based on **no** fully parsed and normalized data from device configuration files.
 
+  * [Cisco Field Notice: FN - 70489 - PKI Self-Signed Certificate Expiration in Cisco IOS and Cisco IOS XE Software](/examples/cisco-self-signed-certificates-field-notice-70489.md)
   * [Find disallowed enabled features on Cisco NX-OS devices](/examples/nxos-disallowed-features.md)
   * [Find all static null routes on Cisco NX-OS devices](/examples/nxos-null-static-routes.md)
   * [Find all interface speeds slower than 1Gbps on Cisco NX-OS devices](/examples/nxos-interface-speed.md)
 
-<a id="chapter-4"></a>
-# How to contribute
+<a id="contribute"></a>
+## How to contribute
 
 We would love to see new examples from you!!
 
@@ -65,3 +65,14 @@ Please contribute by:
  * Wait [for a short time] to hear from us or see it published in this repository
 
 Thanks!!
+
+## Contact
+
+[@AndreasVoellmy](@AndreasVoellmy) or use the project GitHub issues.
+
+## Further reading
+
+* [Product docs](https://app.forwardnetworks.com/docs/docs/applications/network_query_engine/)
+* [Network Query Engine Blog Post](https://www.forwardnetworks.com/blog/network-query-engine)
+* [Network Query Engine main repository](https://github.com/forwardnetworks/network-query-engines)
+* [Network Query Engine examples based on GraphQL](https://github.com/forwardnetworks/network-query-engine-examples)
