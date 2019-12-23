@@ -1,7 +1,9 @@
 ## Cisco Field Notice: FN - 70489 - PKI Self-Signed Certificate Expiration in Cisco IOS and Cisco IOS XE Software
 
-***Name:*** Cisco FN#70489 - IOS-PKI Self-Signed Certificate Expiration
-***Intent:*** Find Cisco device affected by the Field Notice 70489
+***Name:*** Cisco FN#70489 - IOS-PKI Self-Signed Certificate Expiration  
+
+***Intent:*** Find Cisco device affected by the Field Notice 70489  
+
 ***Description:*** This check finds all Cisco device running IOS and Cisco IOS XE software affected by the [Field Notice 70489](https://www.cisco.com/c/en/us/support/docs/field-notices/704/fn70489.html)  
 Problem description:  
 Self-signed X.509 PKI certificates (SSC) that were generated on devices that run affected Cisco IOS or Cisco IOS XE software releases expire on 2020-01-01 00:00:00 UTC. New self-signed certificates cannot be created on affected devices after 2020-01-01 00:00:00 UTC. Any service that relies on these self-signed certificates to establish or terminate a secure connection might not work after the certificate expires.
