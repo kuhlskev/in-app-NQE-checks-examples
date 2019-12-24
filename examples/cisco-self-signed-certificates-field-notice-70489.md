@@ -12,6 +12,9 @@ Check the Field Notice for workarounds and solutions.
 
 ***Query:***
 ```
+// Versions that are affected. Note that these version strings are actually patterns
+// with * indicating any number of arbitrary characters. For example, the first version pattern is "12.x" which matches
+// versions like 12.1, 12.231, and so on.
 affectedVersions =
   ["12.*",
    "15.0.*",
@@ -126,23 +129,28 @@ affectedVersions =
    "16.8.2",
    "16.8.3"
   ];
-
-
+​
+// Determines if the given device may be affected by the field notice, based on two criteria:
+//  (1) the device OS is either IOS or IOS-XE, and
+//  (2) the OS version matches at least one of the affected version strings listed above.
 isAffectedPlatform(device) =
   (device.platform.os == OS.IOS || device.platform.os == OS.IOS_XE) &&
   (!isPresent(device.platform.osVersion) || length((foreach versionPattern in affectedVersions
                                                     where matches(device.platform.osVersion, versionPattern)
                                                     select versionPattern)) > 0);
-
-getTrustPointsWithSelfSignedCerts(d) =
-  foreach line in d.files.config
+​
+​
+// For the given device, get the trustpoints that have "enrollment selfsigned" set defined for the given device.
+// Includes the number of self-signed certs declared for the trustpoint.
+getTrustPointsWithSelfSignedCerts(device) =
+  foreach line in device.files.config
   let crypto = patternMatch(line.text, `crypto pki trustpoint {tpName:string}`)
   where isPresent(crypto)
   let enrollmentLines = (foreach cryptoLine in line.children
                          where isPresent(patternMatch(cryptoLine.text, `enrollment selfsigned`))
                          select cryptoLine.text)
   where length(enrollmentLines) > 0
-  let certLines = (foreach line in d.files.config
+  let certLines = (foreach line in device.files.config
                    let cryptoCertChain = patternMatch(line.text, `crypto pki certificate chain {tpName:string}`)
                    where isPresent(cryptoCertChain) && cryptoCertChain.tpName == crypto.tpName
                    foreach certLine in line.children
@@ -151,67 +159,72 @@ getTrustPointsWithSelfSignedCerts(d) =
   select { tpName: crypto.tpName,
            numSelfSignedCerts: length(certLines)
          };
-
+​
+// True if this line is "ip http secure-server".
 usedInHttpSecureServer(line) =
   isPresent(patternMatch(line.text, `ip http secure-server`));
-
+​
+// True if this line applies the trustpoint in a "ip http secure-trustpoint" command.
 usedInHttpSecureTrustpoint(line, tpName) =
-  length((foreach match in [patternMatch(line.text, `ip http secure-trustpoint {tpName:string}`)
-                           ]
+  length((foreach match in [patternMatch(line.text, `ip http secure-trustpoint {tpName:string}`)]
           where isPresent(match) && match.tpName == tpName
           select line)) > 0;
-
+​
+// True if this line applies the trustpoint in "crypto signaling default" or "crypto signaling remote-addr" commands.
 usedInSipOverTls(line, tpName) =
   length((foreach match in [patternMatch(line.text, `crypto signaling default trustpoint {tpName:string}`),
                             patternMatch(line.text, `crypto signaling remote-addr {ipv4Address} {ipv4Address} trustpoint {tpName:string}`)
                            ]
           where isPresent(match) && match.tpName == tpName
           select line)) > 0;
-
+​
+// True if this line applies the trustpoint in "secure-signaling" or "tftp-server-credentials" commands underneath
+// the "telephony-service" configuration section.
 usedInTelephonyService(line, tpName) =
   isPresent(patternMatch(line.text, `telephony-service`)) &&
   length((foreach child in line.children
           let match1 = patternMatch(child.text, `secure-signaling trustpoint {tpName:string}`)
           let match2 = patternMatch(child.text, `tftp-server-credentials trustpoint {tpName:string}`)
-          where isPresent(match1) &&
-                match1.tpName == tpName || isPresent(match2) &&
-                match2.tpName == tpName
+          where (isPresent(match1) && match1.tpName == tpName) ||
+                (isPresent(match2) && match2.tpName == tpName)
           select child.text)) > 0;
-
+​
+// True if this line applies the trustpoint under "credentials" configuration section.
 usedInCredentials(line, tpName) =
   isPresent(patternMatch(line.text, `credentials`)) &&
   length((foreach child in line.children
           let match = patternMatch(child.text, `trustpoint {tpName:string}`)
           where isPresent(match) && match.tpName == tpName
           select child.text)) > 0;
-
+​
+// True if this line applies the trustpoint under various "dpsfarm" configurations.
 usedInDspFarm(line, tpName) =
   isPresent(patternMatch(line.text, `dspfarm profile {number} {"conference" | "mtp" | "transcode"} security`)) &&
-  length((foreach match in [patternMatch(line.text, `trustpoint {tpName:string}`)
-                           ]
+  length((foreach match in [patternMatch(line.text, `trustpoint {tpName:string}`)]
           where isPresent(match) && match.tpName == tpName
           select match)) > 0;
-
+​
+// True if this line applies the trustpoint in a "stcapp security" command.
 usedInStcApp(line, tpName) =
-  length((foreach match in [patternMatch(line.text, `stcapp security trustpoint {tpName:string}`)
-                           ]
+  length((foreach match in [patternMatch(line.text, `stcapp security trustpoint {tpName:string}`)]
           where isPresent(match) && match.tpName == tpName
           select match)) > 0;
-
+​
+// True if this line applies the trustpoint under a "webvpn gateway" configuration.
 usedInWebVpn(line, tpName) =
   isPresent(patternMatch(line.text, `webvpn gateway {string}`)) &&
-  length((foreach match in [patternMatch(line.text, `ssl trustpoint {tpName:string}`)
-                           ]
+  length((foreach match in [patternMatch(line.text, `ssl trustpoint {tpName:string}`)]
           where isPresent(match) && match.tpName == tpName
           select match)) > 0;
-
+​
+// True if this line applies the trustpoint under a "crypto ssl policy" configuration.
 usedInSslVpn(line, tpName) =
   isPresent(patternMatch(line.text, `crypto ssl policy {string}`)) &&
-  length((foreach match in [patternMatch(line.text, `pki trustpoint {tpName:string} sign`)
-                           ]
+  length((foreach match in [patternMatch(line.text, `pki trustpoint {tpName:string} sign`)]
           where isPresent(match) && match.tpName == tpName
           select match)) > 0;
-
+​
+// True if this line applies the trustpoint under a IKEv2 configuration.
 usedInIkeV2(line, tpName) =
   isPresent(patternMatch(line.text, `crypto ikev2 profile {string}`)) &&
   length((foreach subline in line.children
@@ -221,27 +234,28 @@ usedInIkeV2(line, tpName) =
           let match = patternMatch(subline.text, `pki trustpoint {tpName:string}`)
           where isPresent(match) && match.tpName == tpName
           select line.text)) > 0;
-
+​
+// True if this line applies the trustpoint under a ISAKMP profile configuration.
 usedInIsaKmpProfile(line, tpName) =
   isPresent(patternMatch(line.text, `crypto isakmp profile {string}`)) &&
   length((foreach subline in line.children
           let match = patternMatch(subline.text, `ca trustpoint {tpName:string}`)
           where isPresent(match) && match.tpName == tpName
           select line.text)) > 0;
-
+​
+// True if this line applies the trustpoint under a ISAKMP policy configuration.
 usedInIsaKmpPolicy(line, tpName) =
   isPresent(patternMatch(line.text, `crypto isakmp policy {number}`)) &&
   length((foreach subline in line.children
           let match = patternMatch(subline.text, `authentication {method:string}`)
-          where isPresent(match) &&
-                match.method not in ["pre-share",
-                                     "rsa-encr"
-                                    ]
+          where isPresent(match) && match.method not in ["pre-share", "rsa-encr"]
           select line.text)) > 0;
-
+​
+// True if this line applies the trustpoint under a ISAKMP configuration.
 usedInIsaKmp(line, tpName) =
   usedInIsaKmpProfile(line, tpName) || usedInIsaKmpPolicy(line, tpName);
-
+​
+// True if this line applies the trustpoint under an "ip ssh server" configuration.
 usedInSshServer(line, tpName) =
   isPresent(patternMatch(line.text, `ip ssh server certificate profile`)) &&
   length((foreach subline in line.children
@@ -250,14 +264,19 @@ usedInSshServer(line, tpName) =
           let match = patternMatch(subsubline.text, `trustpoint sign {tpName:string}`)
           where isPresent(match) && match.tpName == tpName
           select line.text)) > 0;
-
+​
+// True if this line applies the trustpoint under an "restconf" configuration.
 usedInRestConf(line, tpName) =
   isPresent(patternMatch(line.text, `restconf`)) &&
   length((foreach subline in line.children
+          // In the following, the client keyword is optional. In other words, the pattern below matches both
+          // ip http client secure-trustpoint abc and ip http secure-trustpoint abc commands.
           let match = patternMatch(subline.text, `ip http {"client" | empty} secure-trustpoint {tpName:string}`)
           where isPresent(match) && match.tpName == tpName
           select line.text)) > 0;
-
+​
+​
+// Returns the collection of config lines that apply the given trustpoint to some feature (on the given device).
 trustpointFeatures(device, tpName) =
   foreach line in device.files.config
   where usedInHttpSecureServer(line) ||
@@ -274,7 +293,12 @@ trustpointFeatures(device, tpName) =
         usedInIkeV2(line, tpName) ||
         usedInIsaKmp(line, tpName)
   select line.text;
-
+​
+​
+// The overall query.
+// The query finds all devices that are affected by the field notice.
+// It then finds all trustpoints that have self-signed certificates, and finds those that were applied to
+// one or more features.
 foreach device in network.devices
 where isAffectedPlatform(device)
 foreach tp in getTrustPointsWithSelfSignedCerts(device)
